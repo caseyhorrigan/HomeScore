@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏡 HomeScore — Casey & Mary's House Hunt</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #020617; color: #e2e8f0; font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 60px; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0f172a; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  input[type=range] { width: 100%; height: 4px; accent-color: #38bdf8; cursor: pointer; }
+  textarea { resize: vertical; font-family: 'DM Sans', sans-serif; }
+  .hcard { transition: all 0.2s; cursor: pointer; }
+  .hcard:hover { border-color: #38bdf8 !important; transform: translateY(-2px); }
+  button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header" style="background:#0f172a;border-bottom:1px solid #1e293b;padding:14px 20px;position:sticky;top:0;z-index:100;">
+  <div style="max-width:900px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button id="backBtn" onclick="goBack()" class="hidden" style="padding:6px 12px;border-radius:8px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:13px;">← Back</button>
+    <div style="flex:1;">
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#f8fafc;">🏡 HomeScore</div>
+      <div style="font-size:11px;color:#475569;font-family:'DM Mono',monospace;">Casey & Mary's House Hunt</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span id="saveStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:#4ade80;display:none;">✓ Saved</span>
+      <button onclick="exportData()" style="padding:6px 12px;border-radius:7px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:12px;">↓ Export</button>
+      <button onclick="document.getElementById('importFile').click()" style="padding:6px 12px;border-radius:7px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:12px;">↑ Import</button>
+      <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display:none;">
+      <button id="addBtn" onclick="showAdd()" style="padding:8px 16px;border-radius:8px;border:none;background:#0284c7;color:#fff;font-size:14px;font-weight:600;">+ Add House</button>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:0 auto;padding:24px 16px;">
+
+  <!-- DASHBOARD -->
+  <div id="viewDashboard">
+    <div id="emptyState" style="text-align:center;padding:80px 20px;">
+      <div style="font-size:56px;margin-bottom:16px;">🏘️</div>
+      <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#f8fafc;margin-bottom:8px;">No houses yet</div>
+      <div style="color:#64748b;margin-bottom:24px;">Add your first house to get started</div>
+      <button onclick="showAdd()" style="padding:12px 28px;border-radius:10px;border:none;background:#0284c7;color:#fff;font-size:15px;font-weight:600;">+ Add First House</button>
+    </div>
+    <div id="houseList" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div id="houseCount" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#f8fafc;"></div>
+        <div style="display:flex;gap:4px;background:#0f172a;border-radius:8px;padding:4px;border:1px solid #1e293b;">
+          <button id="sortScore" onclick="setSortBy('score')" style="padding:5px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;font-family:'DM Mono',monospace;background:#1e40af;color:#93c5fd;">By Score</button>
+          <button id="sortAlpha" onclick="setSortBy('alpha')" style="padding:5px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;font-family:'DM Mono',monospace;background:transparent;color:#64748b;">A–Z</button>
+        </div>
+      </div>
+      <div id="topPick" style="background:linear-gradient(135deg,#0c4a6e,#0f172a);border:1px solid #0369a1;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;font-family:'DM Mono',monospace;color:#38bdf8;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">🏆 Current Top Pick</div>
+          <div id="topPickAddr" style="font-weight:600;font-size:16px;color:#f0f9ff;"></div>
+        </div>
+        <div id="topPickScore" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#38bdf8;"></div>
+      </div>
+      <div id="cardContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT FORM -->
+  <div id="viewAdd" class="hidden">
+    <div id="formTitle" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#f8fafc;margin-bottom:4px;">Add a House</div>
+    <div style="color:#64748b;font-size:13px;margin-bottom:24px;">Score each category 1 (poor) → 10 (excellent)</div>
+
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <label style="font-size:12px;font-family:'DM Mono',monospace;color:#64748b;display:block;margin-bottom:6px;letter-spacing:0.5px;">ADDRESS</label>
+      <input id="addressInput" type="text" placeholder="123 Main St, Tacoma WA"
+        style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#020617;color:#f1f5f9;font-size:15px;outline:none;font-family:'DM Sans',sans-serif;">
+    </div>
+
+    <div id="criteriaGroups"></div>
+
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <label style="font-size:12px;font-family:'DM Mono',monospace;color:#64748b;display:block;margin-bottom:8px;letter-spacing:0.5px;">NOTES (optional)</label>
+      <textarea id="noteInput" rows="3" placeholder="Gut feelings, concerns, things to follow up on..."
+        style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#020617;color:#f1f5f9;font-size:14px;outline:none;line-height:1.5;"></textarea>
+    </div>
+
+    <div style="background:#0c4a6e;border:1px solid #0369a1;border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:#7dd3fc;font-size:14px;">Weighted Score Preview</span>
+      <span id="scorePreview" style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#38bdf8;">0.0<span style="font-size:14px;color:#7dd3fc;">/10</span></span>
+    </div>
+
+    <button id="saveHouseBtn" onclick="saveHouse()" style="width:100%;padding:14px;border-radius:10px;border:none;background:#0284c7;color:#fff;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;">Add House</button>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="viewDetail" class="hidden"></div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'homescore-v1';
+
+const CRITERIA = [
+  { key:'price', label:'Price', weight:13 },
+  { key:'location', label:'Location', weight:10 },
+  { key:'sqFootage', label:'Sq Footage', weight:8 },
+  { key:'commute', label:'Commute', weight:7 },
+  { key:'garageSpace', label:'Garage Space', weight:5 },
+  { key:'renovationsNeeded', label:'Renovations Needed', weight:5 },
+  { key:'schools', label:'Schools', weight:5 },
+  { key:'trailerParking', label:'Trailer Parking', weight:5 },
+  { key:'roof', label:'Roof', weight:4 },
+  { key:'furnace', label:'Furnace', weight:4 },
+  { key:'airConditioning', label:'Air Conditioning', weight:4 },
+  { key:'sewageSystem', label:'Sewage System', weight:4 },
+  { key:'waterHeater', label:'Water Heater', weight:4 },
+  { key:'yard', label:'Yard', weight:4 },
+  { key:'primaryBedroom', label:'Primary Bedroom', weight:3 },
+  { key:'kitchen', label:'Kitchen', weight:3 },
+  { key:'bathrooms', label:'Bathrooms', weight:3 },
+  { key:'livingRoom', label:'Living Room', weight:3 },
+  { key:'layoutOfHouse', label:'Layout of House', weight:3 },
+  { key:'bikeability', label:'Bikeability', weight:3 },
+];
+
+const GROUPS = [
+  { label:'📍 Location & Lifestyle', keys:['price','location','sqFootage','commute','schools','bikeability'] },
+  { label:'🏠 Property Features', keys:['garageSpace','trailerParking','yard','renovationsNeeded'] },
+  { label:'🛋️ Interior', keys:['kitchen','livingRoom','bathrooms','primaryBedroom','layoutOfHouse'] },
+  { label:'🔧 Major Systems', keys:['roof','furnace','airConditioning','waterHeater','sewageSystem'] },
+];
+
+let state = { houses: [], notes: {} };
+let currentView = 'dashboard';
+let editIdx = null;
+let detailIdx = null;
+let sortBy = 'score';
+let formScores = {};
+
+// --- PERSISTENCE ---
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const el = document.getElementById('saveStatus');
+    el.style.display = 'inline';
+    setTimeout(() => el.style.display = 'none', 2000);
+  } catch(e) {}
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'homescore-backup.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.houses) { state = data; saveData(); renderDashboard(); showView('dashboard'); }
+    } catch { alert('Invalid backup file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// --- SCORING ---
+function computeScore(scores) {
+  return CRITERIA.reduce((sum, c) => {
+    const v = parseFloat(scores[c.key]);
+    return sum + (isNaN(v) ? 0 : (v * c.weight) / 10);
+  }, 0);
+}
+
+function scoreColor(v) {
+  return v >= 7.5 ? '#4ade80' : v >= 5 ? '#facc15' : '#f87171';
+}
+
+function scoreBar(score, max=10) {
+  const pct = (score/max)*100;
+  const col = scoreColor(score);
+  return `<div style="display:flex;align-items:center;gap:8px;">
+    <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden;">
+      <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width 0.4s ease;"></div>
+    </div>
+    <span style="font-family:'DM Mono',monospace;font-size:13px;color:${col};min-width:36px;text-align:right;">${score.toFixed(1)}</span>
+  </div>`;
+}
+
+// --- VIEWS ---
+function showView(v) {
+  currentView = v;
+  document.getElementById('viewDashboard').classList.toggle('hidden', v !== 'dashboard');
+  document.getElementById('viewAdd').classList.toggle('hidden', v !== 'add');
+  document.getElementById('viewDetail').classList.toggle('hidden', v !== 'detail');
+  document.getElementById('backBtn').classList.toggle('hidden', v === 'dashboard');
+  document.getElementById('addBtn').classList.toggle('hidden', v !== 'dashboard');
+}
+
+function goBack() {
+  editIdx = null;
+  formScores = {};
+  showView('dashboard');
+  renderDashboard();
+}
+
+// --- DASHBOARD ---
+function setSortBy(s) {
+  sortBy = s;
+  document.getElementById('sortScore').style.background = s === 'score' ? '#1e40af' : 'transparent';
+  document.getElementById('sortScore').style.color = s === 'score' ? '#93c5fd' : '#64748b';
+  document.getElementById('sortAlpha').style.background = s === 'alpha' ? '#1e40af' : 'transparent';
+  document.getElementById('sortAlpha').style.color = s === 'alpha' ? '#93c5fd' : '#64748b';
+  renderDashboard();
+}
+
+function getSorted() {
+  return state.houses
+    .map((h, i) => ({ ...h, idx: i, total: computeScore(h.scores) }))
+    .sort((a, b) => sortBy === 'score' ? b.total - a.total : a.address.localeCompare(b.address));
+}
+
+function filledCount(scores) {
+  return CRITERIA.filter(c => scores[c.key] !== '' && scores[c.key] !== undefined).length;
+}
+
+function renderDashboard() {
+  const empty = document.getElementById('emptyState');
+  const list = document.getElementById('houseList');
+  if (state.houses.length === 0) {
+    empty.classList.remove('hidden'); list.classList.add('hidden'); return;
+  }
+  empty.classList.add('hidden'); list.classList.remove('hidden');
+
+  const sorted = getSorted();
+  document.getElementById('houseCount').textContent = `${state.houses.length} House${state.houses.length !== 1 ? 's' : ''} Reviewed`;
+  document.getElementById('topPickAddr').textContent = sorted[0].address;
+  document.getElementById('topPickScore').textContent = sorted[0].total.toFixed(1);
+
+  const container = document.getElementById('cardContainer');
+  container.innerHTML = sorted.map((h, rank) => `
+    <div class="hcard" onclick="showDetail(${h.idx})"
+      style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px 20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#475569;min-width:24px;">#${rank+1}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:6px;">${h.address}</div>
+          ${scoreBar(h.total)}
+        </div>
+        <div style="display:flex;gap:8px;margin-left:8px;">
+          <button onclick="event.stopPropagation();showEdit(${h.idx})"
+            style="padding:5px 10px;border-radius:6px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:12px;">Edit</button>
+          <button onclick="event.stopPropagation();deleteHouse(${h.idx})"
+            style="padding:5px 10px;border-radius:6px;border:1px solid #7f1d1d;background:transparent;color:#f87171;font-size:12px;">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:11px;color:#475569;font-family:'DM Mono',monospace;">${filledCount(h.scores)}/${CRITERIA.length} criteria scored</span>
+        ${state.notes[h.idx] ? '<span style="font-size:11px;color:#64748b;">📝 notes</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// --- ADD / EDIT ---
+function buildCriteriaForm() {
+  const container = document.getElementById('criteriaGroups');
+  container.innerHTML = GROUPS.map(group => `
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:16px;">${group.label}</div>
+      ${group.keys.map(key => {
+        const c = CRITERIA.find(x => x.key === key);
+        const val = formScores[key] || '';
+        return `
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:14px;color:#cbd5e1;">${c.label}</span>
+              <span style="font-size:11px;font-family:'DM Mono',monospace;color:#475569;">${c.weight}% weight</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="range" min="1" max="10" step="1" value="${val || 5}"
+                oninput="updateScore('${key}', this.value)"
+                style="flex:1;">
+              <div id="badge_${key}" style="width:32px;height:32px;border-radius:6px;background:${val ? '#0f172a' : '#1e293b'};border:2px solid ${val ? '#38bdf8' : '#334155'};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:14px;color:${val ? '#38bdf8' : '#64748b'};font-weight:700;">
+                ${val || '–'}
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function updateScore(key, val) {
+  formScores[key] = val;
+  const badge = document.getElementById(`badge_${key}`);
+  badge.textContent = val;
+  badge.style.background = '#0f172a';
+  badge.style.borderColor = '#38bdf8';
+  badge.style.color = '#38bdf8';
+  updatePreview();
+}
+
+function updatePreview() {
+  const score = computeScore(formScores);
+  document.getElementById('scorePreview').innerHTML =
+    `${score.toFixed(1)}<span style="font-size:14px;color:#7dd3fc;">/10</span>`;
+}
+
+function showAdd() {
+  editIdx = null;
+  formScores = {};
+  document.getElementById('formTitle').textContent = 'Add a House';
+  document.getElementById('saveHouseBtn').textContent = 'Add House';
+  document.getElementById('addressInput').value = '';
+  document.getElementById('noteInput').value = '';
+  buildCriteriaForm();
+  updatePreview();
+  showView('add');
+}
+
+function showEdit(idx) {
+  editIdx = idx;
+  const h = state.houses[idx];
+  formScores = { ...h.scores };
+  document.getElementById('formTitle').textContent = 'Edit House';
+  document.getElementById('saveHouseBtn').textContent = 'Save Changes';
+  document.getElementById('addressInput').value = h.address;
+  document.getElementById('noteInput').value = state.notes[idx] || '';
+  buildCriteriaForm();
+  updatePreview();
+  showView('add');
+}
+
+function saveHouse() {
+  const address = document.getElementById('addressInput').value.trim();
+  if (!address) { alert('Please enter an address.'); return; }
+  const note = document.getElementById('noteInput').value.trim();
+  const entry = { address, scores: { ...formScores } };
+
+  if (editIdx !== null) {
+    state.houses[editIdx] = entry;
+    if (note) state.notes[editIdx] = note; else delete state.notes[editIdx];
+  } else {
+    const idx = state.houses.length;
+    state.houses.push(entry);
+    if (note) state.notes[idx] = note;
+  }
+
+  saveData();
+  editIdx = null;
+  formScores = {};
+  showView('dashboard');
+  renderDashboard();
+}
+
+function deleteHouse(idx) {
+  if (!confirm(`Remove "${state.houses[idx].address}"?`)) return;
+  state.houses.splice(idx, 1);
+  // Rebuild notes with shifted indices
+  const newNotes = {};
+  Object.keys(state.notes).forEach(k => {
+    const ki = parseInt(k);
+    if (ki < idx) newNotes[ki] = state.notes[ki];
+    else if (ki > idx) newNotes[ki - 1] = state.notes[ki];
+  });
+  state.notes = newNotes;
+  saveData();
+  renderDashboard();
+}
+
+// --- DETAIL ---
+function showDetail(idx) {
+  detailIdx = idx;
+  const h = state.houses[idx];
+  const total = computeScore(h.scores);
+  const col = scoreColor(total);
+  const note = state.notes[idx];
+
+  document.getElementById('viewDetail').innerHTML = `
+    <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#f8fafc;margin-bottom:4px;">${h.address}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <div style="font-family:'DM Mono',monospace;font-size:36px;font-weight:700;color:${col};">${total.toFixed(1)}</div>
+      <div style="color:#64748b;font-size:13px;">weighted score out of 10</div>
+      <button onclick="showEdit(${idx})" style="margin-left:auto;padding:7px 16px;border-radius:8px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:13px;">Edit Scores</button>
+    </div>
+    ${note ? `
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:12px;font-family:'DM Mono',monospace;color:#64748b;margin-bottom:8px;">📝 NOTES</div>
+      <div style="font-size:14px;color:#cbd5e1;line-height:1.6;white-space:pre-wrap;">${note}</div>
+    </div>` : ''}
+    ${GROUPS.map(group => `
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:16px;">${group.label}</div>
+        ${group.keys.map(key => {
+          const c = CRITERIA.find(x => x.key === key);
+          const val = parseFloat(h.scores[key]);
+          const contribution = isNaN(val) ? 0 : (val * c.weight) / 10;
+          const bc = isNaN(val) ? 'transparent' : val >= 7 ? '#4ade80' : val >= 5 ? '#facc15' : '#f87171';
+          return `
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:14px;color:#cbd5e1;">${c.label}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:#475569;">
+                  ${isNaN(val) ? '–' : val}/10 · ${c.weight}% · <span style="color:#38bdf8;">${contribution.toFixed(2)}pts</span>
+                </span>
+              </div>
+              <div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+                <div style="width:${isNaN(val) ? 0 : val*10}%;height:100%;border-radius:3px;background:${bc};transition:width 0.4s ease;"></div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `).join('')}
+  `;
+  showView('detail');
+}
+
+// --- INIT ---
+loadData();
+renderDashboard();
+showView('dashboard');
+</script>
+</body>
+</html>
